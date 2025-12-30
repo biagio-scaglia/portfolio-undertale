@@ -307,12 +307,20 @@ body {
   outline-offset: 2px;
 }
 
-/* Audio Control */
-.audio-control {
+/* Control Buttons Container */
+.control-buttons {
   position: fixed;
   top: var(--spacing-sm);
   right: var(--spacing-sm);
   z-index: 200;
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+/* Audio Control and Control Buttons */
+.audio-control,
+.control-button {
   background: var(--color-bg);
   border: var(--border-width-thin) solid var(--color-border);
   padding: var(--spacing-xs);
@@ -327,12 +335,15 @@ body {
 }
 
 .audio-control:hover,
-.audio-control:focus {
+.audio-control:focus,
+.control-button:hover,
+.control-button:focus {
   border-color: var(--color-accent);
   outline: none;
 }
 
-.audio-control:focus-visible {
+.audio-control:focus-visible,
+.control-button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
@@ -365,6 +376,35 @@ body {
   }
 }
 
+/* Portfolio Title */
+.portfolio-title {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  font-family: var(--font-main);
+  font-size: var(--font-size-title);
+  color: var(--color-text);
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.8), 0 0 10px rgba(247, 213, 29, 0.3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Character sprites */
+.character-sprite {
+  position: absolute;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  z-index: 10;
+  will-change: transform;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   :root {
@@ -374,6 +414,11 @@ body {
     --font-size-dialog: 20px;
     --font-size-card-title: 20px;
     --font-size-card-text: 16px;
+  }
+  
+  .portfolio-title {
+    font-size: 32px;
+    top: 10px;
   }
   
   .dialog-box {

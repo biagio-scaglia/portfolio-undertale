@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { DialogOverlay } from './DialogOverlay'
 import { ChoiceDialog } from './ChoiceDialog'
 import { AudioControl } from './AudioControl'
+import { SaveButton } from './SaveButton'
+import { CharacterButton } from './CharacterButton'
 import { getCardPreviewLines, getDialogContent, type CardData, type Language } from '../data/portfolioData'
 import { portfolioTranslations } from '../data/portfolioTranslations'
 import { getTranslations } from '../utils/i18n'
-import { playCardOpen, playSave } from '../utils/audioManager'
-import { saveGame, loadGame, type SaveData } from '../utils/saveSystem'
+import { playCardOpen } from '../utils/audioManager'
+import { loadGame, type SaveData } from '../utils/saveSystem'
 import { audioManager } from '../utils/audioManager'
 
 const PLAYER_SPEED = 2
@@ -32,19 +34,20 @@ const CARD_COLORS: Record<string, string> = {
     experience: '#6bcfd4',
     skills: '#a8d8ea',
     projects: '#ff9a9e',
+    education: '#c7a8e8',
     contact: '#a8e6cf'
 }
 
-function calculateCardPositions(canvasWidth: number, canvasHeight: number, language: Language): CardData[] {
+function calculateCardPositions(canvasWidth: number, _canvasHeight: number, language: Language): CardData[] {
     const portfolioData = portfolioTranslations[language]
     const t = getTranslations(language)
     const cardsPerRow = 2
-    const totalCards = 5
-    const rows = Math.ceil(totalCards / cardsPerRow)
     const totalWidth = cardsPerRow * CARD_WIDTH + (cardsPerRow - 1) * CARD_SPACING
-    const totalHeight = rows * CARD_HEIGHT + (rows - 1) * CARD_SPACING
     const startX = (canvasWidth - totalWidth) / 2
-    const startY = (canvasHeight - totalHeight) / 2
+    // Add space for title (80px for title + 40px spacing)
+    const TITLE_HEIGHT = 80
+    const TITLE_SPACING = 40
+    const startY = TITLE_HEIGHT + TITLE_SPACING
     const cards: CardData[] = []
     cards.push({
         id: 'profile',
@@ -53,7 +56,7 @@ function calculateCardPositions(canvasWidth: number, canvasHeight: number, langu
         w: CARD_WIDTH,
         h: CARD_HEIGHT,
         title: t.cards.profile,
-        lines: getCardPreviewLines(portfolioData, 'profile', t.labels),
+        lines: getCardPreviewLines(portfolioData, 'profile', t.labels, t.cardSummaries.profile),
         iconClass: 'fa-solid fa-user'
     })
     cards.push({
@@ -63,7 +66,7 @@ function calculateCardPositions(canvasWidth: number, canvasHeight: number, langu
         w: CARD_WIDTH,
         h: CARD_HEIGHT - 20,
         title: t.cards.experience,
-        lines: getCardPreviewLines(portfolioData, 'experience', t.labels),
+        lines: getCardPreviewLines(portfolioData, 'experience', t.labels, t.cardSummaries.experience),
         iconClass: 'fa-solid fa-briefcase'
     })
     cards.push({
@@ -73,7 +76,7 @@ function calculateCardPositions(canvasWidth: number, canvasHeight: number, langu
         w: CARD_WIDTH,
         h: CARD_HEIGHT - 20,
         title: t.cards.skills,
-        lines: getCardPreviewLines(portfolioData, 'skills', t.labels),
+        lines: getCardPreviewLines(portfolioData, 'skills', t.labels, t.cardSummaries.skills),
         iconClass: 'fa-solid fa-code'
     })
     cards.push({
@@ -83,17 +86,27 @@ function calculateCardPositions(canvasWidth: number, canvasHeight: number, langu
         w: CARD_WIDTH,
         h: CARD_HEIGHT,
         title: t.cards.projects,
-        lines: getCardPreviewLines(portfolioData, 'projects', t.labels),
+        lines: getCardPreviewLines(portfolioData, 'projects', t.labels, t.cardSummaries.projects),
         iconClass: 'fa-solid fa-rocket'
     })
     cards.push({
+        id: 'education',
+        x: startX,
+        y: startY + (CARD_HEIGHT + CARD_SPACING) * 2,
+        w: CARD_WIDTH,
+        h: CARD_HEIGHT - 20,
+        title: t.cards.education,
+        lines: getCardPreviewLines(portfolioData, 'education', t.labels, t.cardSummaries.education),
+        iconClass: 'fa-solid fa-graduation-cap'
+    })
+    cards.push({
         id: 'contact',
-        x: startX + (CARD_WIDTH + CARD_SPACING) / 2,
+        x: startX + CARD_WIDTH + CARD_SPACING,
         y: startY + (CARD_HEIGHT + CARD_SPACING) * 2,
         w: CARD_WIDTH,
         h: CARD_HEIGHT - 40,
         title: t.cards.contact,
-        lines: getCardPreviewLines(portfolioData, 'contact', t.labels),
+        lines: getCardPreviewLines(portfolioData, 'contact', t.labels, t.cardSummaries.contact),
         iconClass: 'fa-solid fa-envelope'
     })
     
@@ -109,12 +122,17 @@ type Props = {
 export function Explore({ language }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const cardsRef = useRef<CardData[]>([])
+    const playerImgRef = useRef<HTMLImageElement>(null)
+    const sansNPCImgRef = useRef<HTMLImageElement>(null)
+    const friskNPCImgRef = useRef<HTMLImageElement>(null)
 
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+    const [playerPos, setPlayerPos] = useState<{ x: number; y: number; dir: string; frame: number } | null>(null)
+    const [sansNPCPos, setSansNPCPos] = useState<{ x: number; y: number; dir: string; frame: number } | null>(null)
+    const [friskNPCPos, setFriskNPCPos] = useState<{ x: number; y: number; dir: string } | null>(null)
     const [currentCharacter, setCurrentCharacter] = useState<CharacterType>('frisk')
     const [showSansDialog, setShowSansDialog] = useState(false)
     const [showFriskSwapDialog, setShowFriskSwapDialog] = useState(false)
-    const [showSaveDialog, setShowSaveDialog] = useState(false)
     const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false)
     const [showLoadDialog, setShowLoadDialog] = useState(false)
     const [visitedCards, setVisitedCards] = useState<string[]>([])
@@ -123,7 +141,6 @@ export function Explore({ language }: Props) {
     const currentCharacterRef = useRef<CharacterType>('frisk')
     const showSansDialogRef = useRef(false)
     const showFriskSwapDialogRef = useRef(false)
-    const showSaveDialogRef = useRef(false)
     const visitedCardsRef = useRef<string[]>([])
     const playerPositionRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -132,9 +149,8 @@ export function Explore({ language }: Props) {
         currentCharacterRef.current = currentCharacter
         showSansDialogRef.current = showSansDialog
         showFriskSwapDialogRef.current = showFriskSwapDialog
-        showSaveDialogRef.current = showSaveDialog
         visitedCardsRef.current = visitedCards
-    }, [selectedCardId, currentCharacter, showSansDialog, showFriskSwapDialog, showSaveDialog, visitedCards])
+    }, [selectedCardId, currentCharacter, showSansDialog, showFriskSwapDialog, visitedCards])
     
     useEffect(() => {
         if (selectedCardId) {
@@ -147,14 +163,17 @@ export function Explore({ language }: Props) {
         }
     }, [selectedCardId])
     
+    // Load game state on mount
+    const savedGameRef = useRef<SaveData | null>(null)
     useEffect(() => {
         const saved = loadGame()
         if (saved) {
+            savedGameRef.current = saved
+            setCurrentCharacter(saved.currentCharacter)
+            setVisitedCards(saved.visitedCards || [])
+            audioManager.setEnabled(saved.audioEnabled !== false)
             setShowLoadDialog(true)
             setTimeout(() => {
-                setCurrentCharacter(saved.currentCharacter)
-                setVisitedCards(saved.visitedCards || [])
-                audioManager.setEnabled(saved.audioEnabled !== false)
                 setShowLoadDialog(false)
             }, 2000)
         }
@@ -167,7 +186,10 @@ export function Explore({ language }: Props) {
         if (!ctx) return
 
         canvas.width = window.innerWidth
-        const minHeight = (CARD_HEIGHT + CARD_SPACING) * 3 + CARD_SPACING
+        // Add space for title at the top
+        const TITLE_HEIGHT = 80
+        const TITLE_SPACING = 40
+        const minHeight = TITLE_HEIGHT + TITLE_SPACING + (CARD_HEIGHT + CARD_SPACING) * 3 + CARD_SPACING
         canvas.height = Math.max(window.innerHeight, minHeight)
         ctx.imageSmoothingEnabled = false
         
@@ -176,19 +198,75 @@ export function Explore({ language }: Props) {
         const t = getTranslations(language)
 
         const contactCard = CARDS.find(c => c.id === 'contact')
+        // Spawn player position
         const spawnX = contactCard ? contactCard.x + contactCard.w + CARD_SPACING : canvas.width / 2 + 200
         const spawnY = contactCard ? contactCard.y + (contactCard.h / 2) - PLAYER_HEIGHT / 2 : canvas.height / 2 - PLAYER_HEIGHT / 2
         
-        const savePoint = {
-            x: contactCard ? contactCard.x - 60 : canvas.width / 2 - 100,
-            y: contactCard ? contactCard.y + (contactCard.h / 2) - 15 : canvas.height / 2 - 15,
-            w: 30,
-            h: 30
+        // Frisk NPC positioned in bottom-left area
+        const friskNPCX = 50
+        const friskNPCY = canvas.height - PLAYER_HEIGHT - 50
+        
+        // Handle window resize
+        const handleResize = () => {
+            if (!canvas) return
+            const oldWidth = canvas.width
+            const oldHeight = canvas.height
+            
+            canvas.width = window.innerWidth
+            const TITLE_HEIGHT = 80
+            const TITLE_SPACING = 40
+            const newMinHeight = TITLE_HEIGHT + TITLE_SPACING + (CARD_HEIGHT + CARD_SPACING) * 3 + CARD_SPACING
+            canvas.height = Math.max(window.innerHeight, newMinHeight)
+            
+            // Recalculate card positions
+            cardsRef.current = calculateCardPositions(canvas.width, canvas.height, language)
+            
+            // Update Frisk NPC position (bottom-left area)
+            const newFriskNPCX = 50
+            const newFriskNPCY = canvas.height - PLAYER_HEIGHT - 50
+            
+            if (friskNPCPos) {
+                setFriskNPCPos({
+                    ...friskNPCPos,
+                    x: newFriskNPCX,
+                    y: newFriskNPCY
+                })
+            }
+            
+            // Scale player position proportionally if needed
+            if (playerPos) {
+                const scaleX = canvas.width / oldWidth
+                const scaleY = canvas.height / oldHeight
+                setPlayerPos({
+                    ...playerPos,
+                    x: Math.min(playerPos.x * scaleX, canvas.width - PLAYER_WIDTH),
+                    y: Math.min(playerPos.y * scaleY, canvas.height - PLAYER_HEIGHT)
+                })
+            }
+            
+            // Scale Sans NPC position proportionally if needed
+            if (sansNPCPos) {
+                const scaleX = canvas.width / oldWidth
+                const scaleY = canvas.height / oldHeight
+                setSansNPCPos({
+                    ...sansNPCPos,
+                    x: Math.min(sansNPCPos.x * scaleX, canvas.width - PLAYER_WIDTH),
+                    y: Math.min(sansNPCPos.y * scaleY, canvas.height - PLAYER_HEIGHT)
+                })
+            }
         }
+        
+        window.addEventListener('resize', handleResize)
 
-        const saved = loadGame()
+        // Use saved position if available, otherwise use spawn position
+        const saved = savedGameRef.current
         const initialX = saved ? saved.playerX : spawnX
         const initialY = saved ? saved.playerY : spawnY
+        
+        // Set character from saved game
+        if (saved) {
+            currentCharacterRef.current = saved.currentCharacter
+        }
 
         const player = {
             x: initialX,
@@ -202,8 +280,13 @@ export function Explore({ language }: Props) {
         
         playerPositionRef.current = { x: player.x, y: player.y }
 
-        const sansNPCBaseX = spawnX
-        const sansNPCBaseY = spawnY
+        // NPC positions: if loading from save, NPC should be at saved player position
+        // Otherwise, NPC is at spawn position
+        const npcX = saved ? initialX : spawnX
+        const npcY = saved ? initialY : spawnY
+        
+        const sansNPCBaseX = npcX
+        const sansNPCBaseY = npcY
         const sansNPC = {
             x: sansNPCBaseX,
             y: sansNPCBaseY,
@@ -213,14 +296,51 @@ export function Explore({ language }: Props) {
             frame: 0,
             animationFrame: 0
         }
-
+        
         const friskNPC = {
-            x: sansNPCBaseX,
-            y: sansNPCBaseY,
+            x: friskNPCX,
+            y: friskNPCY,
             w: PLAYER_WIDTH,
             h: PLAYER_HEIGHT,
             dir: 'avanti'
         }
+        
+        // If loading from save, set NPC positions based on current character
+        if (saved) {
+            if (saved.currentCharacter === 'sans') {
+                // Player is Sans, so Frisk NPC should be in bottom-left area
+                friskNPC.x = friskNPCX
+                friskNPC.y = friskNPCY
+                // Sans NPC should be at spawn
+                sansNPC.x = spawnX
+                sansNPC.y = spawnY
+            } else {
+                // Player is Frisk, so Sans NPC should be at spawn position
+                sansNPC.x = spawnX
+                sansNPC.y = spawnY
+                // Frisk NPC is already in bottom-left area
+            }
+        } else {
+            // Initial setup: Frisk is player, Sans is NPC at spawn, Frisk NPC in bottom-left
+            sansNPC.x = spawnX
+            sansNPC.y = spawnY
+            friskNPC.x = friskNPCX
+            friskNPC.y = friskNPCY
+        }
+        
+        // Initialize NPC positions for img rendering (player appears only when moving)
+        setSansNPCPos({
+            x: sansNPC.x,
+            y: sansNPC.y,
+            dir: sansNPC.dir,
+            frame: sansNPC.frame
+        })
+        
+        setFriskNPCPos({
+            x: friskNPC.x,
+            y: friskNPC.y,
+            dir: friskNPC.dir
+        })
 
         const friskSprites: Record<string, HTMLImageElement> = {
             avanti: new Image(),
@@ -250,21 +370,15 @@ export function Explore({ language }: Props) {
             }
         })
 
-        const savePointSprite = new Image()
-        savePointSprite.src = '/assets/sprites/savepoint.gif'
+        // Save point now uses HTML img element for GIF animation
 
         const keys: Record<string, boolean> = {}
         
         const handleKeyDown = (e: KeyboardEvent) => {
             keys[e.key] = true
-            if ((e.key.toLowerCase() === 'z' || e.key === 'Enter') && !selectedCardIdRef.current && !showSansDialogRef.current && !showFriskSwapDialogRef.current && !showSaveDialogRef.current) {
+            if ((e.key.toLowerCase() === 'z' || e.key === 'Enter') && !selectedCardIdRef.current && !showSansDialogRef.current && !showFriskSwapDialogRef.current) {
                 checkCollisions()
                 
-                if (activeSavePointRef.current) {
-                    e.preventDefault()
-                    window.dispatchEvent(new CustomEvent('interact-save'))
-                    return
-                }
                 if (currentCharacterRef.current === 'frisk' && activeSansCollisionRef.current) {
                     e.preventDefault()
                     window.dispatchEvent(new CustomEvent('interact-sans'))
@@ -289,16 +403,27 @@ export function Explore({ language }: Props) {
 
         const handleCharacterSwitch = (e: any) => {
             const newCharacter = e.detail.newCharacter
-            if (newCharacter === 'sans') {
-                player.x = sansNPCBaseX
-                player.y = sansNPCBaseY
-                friskNPC.x = sansNPCBaseX
-                friskNPC.y = sansNPCBaseY
-            } else if (newCharacter === 'frisk') {
-                player.x = sansNPCBaseX
-                player.y = sansNPCBaseY
-                sansNPC.x = sansNPCBaseX
-                sansNPC.y = sansNPCBaseY
+            // Only swap positions if this is a manual switch, not on load
+            // On load, positions are already set correctly
+            if (!saved) {
+                if (newCharacter === 'sans') {
+                // Player becomes Sans, keep player position, move Frisk NPC to bottom-left
+                friskNPC.x = friskNPCX
+                friskNPC.y = friskNPCY
+                } else if (newCharacter === 'frisk') {
+                    // Player becomes Frisk, keep player position, move Sans to spawn position
+                    sansNPC.x = spawnX
+                    sansNPC.y = spawnY
+                }
+            } else {
+                // On load, positions are already set correctly
+                if (newCharacter === 'sans') {
+                    friskNPC.x = friskNPCX
+                    friskNPC.y = friskNPCY
+                } else if (newCharacter === 'frisk') {
+                    sansNPC.x = spawnX
+                    sansNPC.y = spawnY
+                }
             }
         }
         window.addEventListener('character-switch', handleCharacterSwitch)
@@ -311,28 +436,22 @@ export function Explore({ language }: Props) {
         window.addEventListener('interact-sans', handleInteractSans)
 
         const handleInteractFrisk = () => {
+            // Only show dialog if player is Sans (not already Frisk)
             if (currentCharacterRef.current === 'sans') {
                 setShowFriskSwapDialog(true)
             }
         }
         window.addEventListener('interact-frisk', handleInteractFrisk)
         
-        const handleInteractSave = () => {
-            setShowSaveDialog(true)
-        }
-        window.addEventListener('interact-save', handleInteractSave)
-
         let animationId: number
         const activeCollisionRef = { current: null as string | null }
         const activeSansCollisionRef = { current: false }
         const activeFriskCollisionRef = { current: false }
-        const activeSavePointRef = { current: false }
 
         function checkCollisions() {
             activeCollisionRef.current = null
             activeSansCollisionRef.current = false
             activeFriskCollisionRef.current = false
-            activeSavePointRef.current = false
             
             for (const card of CARDS) {
                 if (
@@ -371,17 +490,6 @@ export function Explore({ language }: Props) {
                 }
             }
             
-            const playerCenterX = player.x + player.w / 2
-            const playerCenterY = player.y + player.h / 2
-            const saveCenterX = savePoint.x + savePoint.w / 2
-            const saveCenterY = savePoint.y + savePoint.h / 2
-            const distance = Math.sqrt(
-                Math.pow(playerCenterX - saveCenterX, 2) + 
-                Math.pow(playerCenterY - saveCenterY, 2)
-            )
-            if (distance < NPC_INTERACTION_DISTANCE) {
-                activeSavePointRef.current = true
-            }
         }
 
         function update() {
@@ -422,15 +530,41 @@ export function Explore({ language }: Props) {
                 player.dir = 'destra'
             }
 
-            if (player.x < 0) player.x = 0
-            if (player.y < 0) player.y = 0
-            if (player.x > canvas.width - player.w) player.x = canvas.width - player.w
-            if (player.y > canvas.height - player.h) player.y = canvas.height - player.h
+            // Keep player within canvas bounds
+            player.x = Math.max(0, Math.min(player.x, canvas.width - player.w))
+            player.y = Math.max(0, Math.min(player.y, canvas.height - player.h))
 
             playerPositionRef.current = { x: player.x, y: player.y }
+            
+            // Check if player is moving
+            const isMoving = keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight']
+            
+            // Update player position state for img rendering only when moving
+            if (isMoving) {
+                setPlayerPos({
+                    x: player.x,
+                    y: player.y,
+                    dir: player.dir,
+                    frame: player.frame
+                })
+            }
+            
+            // Update NPC positions
+            setSansNPCPos({
+                x: sansNPC.x,
+                y: sansNPC.y,
+                dir: sansNPC.dir,
+                frame: sansNPC.frame
+            })
+            
+            setFriskNPCPos({
+                x: friskNPC.x,
+                y: friskNPC.y,
+                dir: friskNPC.dir
+            })
+            
             checkCollisions()
             
-            const isMoving = keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight']
             if (isMoving) {
                 scrollToFollowPlayer(player, canvas)
             }
@@ -561,75 +695,48 @@ export function Explore({ language }: Props) {
             }
         }
 
-        function drawSavePoint() {
-            if (!ctx) return
-            
-            if (savePointSprite.complete && savePointSprite.naturalWidth > 0) {
-                ctx.drawImage(savePointSprite, savePoint.x, savePoint.y, savePoint.w, savePoint.h)
-            }
-            
-            if (activeSavePointRef.current) {
-                const centerX = savePoint.x + savePoint.w / 2
-                const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7
-                ctx.globalAlpha = pulse
-                ctx.fillStyle = COLOR_ACTIVE
-                ctx.font = '16px "VT323", monospace'
-                const hintText = t.ui.talk
-                const textWidth = ctx.measureText(hintText).width
-                ctx.fillText(hintText, centerX - textWidth / 2, savePoint.y - 10)
-                ctx.globalAlpha = 1.0
-            }
+        function drawTitle() {
+            if (!ctx || !canvas) return
+            const titleText = 'Portfolio di Biagio'
+            ctx.fillStyle = COLOR_TEXT
+            ctx.font = 'bold 48px "VT323", monospace'
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'top'
+            const titleX = canvas.width / 2
+            const titleY = 20
+            ctx.fillText(titleText, titleX, titleY)
+            ctx.textAlign = 'left'
+            ctx.textBaseline = 'alphabetic'
         }
 
         function draw() {
             if (!ctx || !canvas) return
             ctx.clearRect(0, 0, canvas.width, canvas.height)
             
+            drawTitle()
             CARDS.forEach(card => drawCard(card))
-            drawSavePoint()
             
-            if (currentCharacterRef.current === 'frisk') {
-                const sprite = friskSprites[player.dir]
-                ctx.drawImage(sprite, player.x, player.y, player.w, player.h)
-            } else {
-                const sansSprite = sansSprites[player.dir][player.frame]
-                if (sansSprite.complete) {
-                    ctx.drawImage(sansSprite, player.x, player.y, player.w, player.h)
-                }
+            // Draw interaction hints on canvas (for Sans, Frisk)
+            if (currentCharacterRef.current === 'frisk' && activeSansCollisionRef.current) {
+                const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7
+                ctx.globalAlpha = pulse
+                ctx.fillStyle = COLOR_ACTIVE
+                ctx.font = '16px "VT323", monospace'
+                const hintText = t.ui.talk
+                const textWidth = ctx.measureText(hintText).width
+                ctx.fillText(hintText, sansNPC.x + sansNPC.w / 2 - textWidth / 2, sansNPC.y - 10)
+                ctx.globalAlpha = 1.0
             }
             
-            if (currentCharacterRef.current === 'frisk') {
-                const sansSprite = sansSprites[sansNPC.dir][sansNPC.frame]
-                if (sansSprite.complete) {
-                    ctx.drawImage(sansSprite, sansNPC.x, sansNPC.y, sansNPC.w, sansNPC.h)
-                }
-                
-                if (activeSansCollisionRef.current) {
-                    const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7
-                    ctx.globalAlpha = pulse
-                    ctx.fillStyle = COLOR_ACTIVE
-                    ctx.font = '16px "VT323", monospace'
-                    const hintText = t.ui.talk
-                    const textWidth = ctx.measureText(hintText).width
-                    ctx.fillText(hintText, sansNPC.x + sansNPC.w / 2 - textWidth / 2, sansNPC.y - 10)
-                    ctx.globalAlpha = 1.0
-                }
-            }
-            
-            if (currentCharacterRef.current === 'sans') {
-                const friskSprite = friskSprites.avanti
-                ctx.drawImage(friskSprite, friskNPC.x, friskNPC.y, friskNPC.w, friskNPC.h)
-                
-                if (activeFriskCollisionRef.current) {
-                    const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7
-                    ctx.globalAlpha = pulse
-                    ctx.fillStyle = COLOR_ACTIVE
-                    ctx.font = '16px "VT323", monospace'
-                    const hintText = t.ui.talk
-                    const textWidth = ctx.measureText(hintText).width
-                    ctx.fillText(hintText, friskNPC.x + friskNPC.w / 2 - textWidth / 2, friskNPC.y - 10)
-                    ctx.globalAlpha = 1.0
-                }
+            if (currentCharacterRef.current === 'sans' && activeFriskCollisionRef.current) {
+                const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7
+                ctx.globalAlpha = pulse
+                ctx.fillStyle = COLOR_ACTIVE
+                ctx.font = '16px "VT323", monospace'
+                const hintText = t.ui.talk
+                const textWidth = ctx.measureText(hintText).width
+                ctx.fillText(hintText, friskNPC.x + friskNPC.w / 2 - textWidth / 2, friskNPC.y - 10)
+                ctx.globalAlpha = 1.0
             }
         }
 
@@ -646,7 +753,7 @@ export function Explore({ language }: Props) {
             window.removeEventListener('character-switch', handleCharacterSwitch)
             window.removeEventListener('interact-sans', handleInteractSans)
             window.removeEventListener('interact-frisk', handleInteractFrisk)
-            window.removeEventListener('interact-save', handleInteractSave)
+            window.removeEventListener('resize', handleResize)
             cancelAnimationFrame(animationId)
         }
     }, [language])
@@ -665,23 +772,128 @@ export function Explore({ language }: Props) {
     }, [language])
 
     useEffect(() => {
-        const handleCharacterSwitch = () => {
-            // Dispatch event to canvas to handle position swap
-            window.dispatchEvent(new CustomEvent('character-switch', { 
-                detail: { newCharacter: currentCharacter } 
-            }))
+        // Only dispatch character switch if not loading from save initially
+        // The save load already sets positions correctly in the canvas useEffect
+        if (savedGameRef.current === null || savedGameRef.current === undefined) {
+            const handleCharacterSwitch = () => {
+                // Dispatch event to canvas to handle position swap
+                window.dispatchEvent(new CustomEvent('character-switch', { 
+                    detail: { newCharacter: currentCharacter } 
+                }))
+            }
+            handleCharacterSwitch()
+        } else {
+            // Mark that we've processed the initial load
+            savedGameRef.current = null
         }
-        handleCharacterSwitch()
     }, [currentCharacter])
 
     const selectedCard = cardsRef.current.find(c => c.id === selectedCardId)
     const portfolioData = portfolioTranslations[language]
     const t = getTranslations(language)
 
+    const handleCharacterSwitch = () => {
+        const newCharacter = currentCharacter === 'frisk' ? 'sans' : 'frisk'
+        setCurrentCharacter(newCharacter)
+        window.dispatchEvent(new CustomEvent('character-switch', { 
+            detail: { newCharacter } 
+        }))
+    }
+
     return (
         <>
-            <AudioControl />
+            <div className="control-buttons">
+                <AudioControl />
+                <SaveButton
+                    language={language}
+                    playerX={playerPositionRef.current?.x || 0}
+                    playerY={playerPositionRef.current?.y || 0}
+                    currentCharacter={currentCharacter}
+                    visitedCards={visitedCards}
+                    onSaveComplete={() => {
+                        setShowSaveConfirmDialog(true)
+                        setTimeout(() => {
+                            setShowSaveConfirmDialog(false)
+                        }, 1500)
+                    }}
+                />
+                <CharacterButton
+                    language={language}
+                    currentCharacter={currentCharacter}
+                    onSwitch={handleCharacterSwitch}
+                />
+            </div>
             <canvas ref={canvasRef} style={{ display: 'block', imageRendering: 'pixelated' }} />
+            {/* Player character as img */}
+            {playerPos && (
+                <img
+                    ref={playerImgRef}
+                    src={currentCharacter === 'frisk' 
+                        ? `/assets/sprites/frisk/${playerPos.dir}.png`
+                        : `/assets/sprites/sans/sans-${playerPos.dir}-${(playerPos.frame % 4) + 1}.png`
+                    }
+                    alt={currentCharacter === 'frisk' ? 'Frisk' : 'Sans'}
+                    style={{
+                        position: 'absolute',
+                        left: `${playerPos.x}px`,
+                        top: `${playerPos.y}px`,
+                        width: `${PLAYER_WIDTH}px`,
+                        height: `${PLAYER_HEIGHT}px`,
+                        imageRendering: 'pixelated',
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                        willChange: 'transform'
+                    }}
+                    onError={(e) => {
+                        // Fallback if image fails to load
+                        console.warn('Failed to load player sprite:', e)
+                    }}
+                />
+            )}
+            {/* Sans NPC as img */}
+            {sansNPCPos && currentCharacter === 'frisk' && (
+                <img
+                    ref={sansNPCImgRef}
+                    src={`/assets/sprites/sans/sans-${sansNPCPos.dir}-${(sansNPCPos.frame % 4) + 1}.png`}
+                    alt="Sans NPC"
+                    style={{
+                        position: 'absolute',
+                        left: `${sansNPCPos.x}px`,
+                        top: `${sansNPCPos.y}px`,
+                        width: `${PLAYER_WIDTH}px`,
+                        height: `${PLAYER_HEIGHT}px`,
+                        imageRendering: 'pixelated',
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                        willChange: 'transform'
+                    }}
+                    onError={(e) => {
+                        console.warn('Failed to load Sans NPC sprite:', e)
+                    }}
+                />
+            )}
+            {/* Frisk NPC as img */}
+            {friskNPCPos && currentCharacter === 'sans' && (
+                <img
+                    ref={friskNPCImgRef}
+                    src={`/assets/sprites/frisk/${friskNPCPos.dir}.png`}
+                    alt="Frisk NPC"
+                    style={{
+                        position: 'absolute',
+                        left: `${friskNPCPos.x}px`,
+                        top: `${friskNPCPos.y}px`,
+                        width: `${PLAYER_WIDTH}px`,
+                        height: `${PLAYER_HEIGHT}px`,
+                        imageRendering: 'pixelated',
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                        willChange: 'transform'
+                    }}
+                    onError={(e) => {
+                        console.warn('Failed to load Frisk NPC sprite:', e)
+                    }}
+                />
+            )}
             {selectedCard && (
                 <DialogOverlay
                     title={selectedCard.title}
@@ -723,38 +935,6 @@ export function Explore({ language }: Props) {
                         }
                     }}
                     onClose={() => setShowFriskSwapDialog(false)}
-                    skipText={t.ui.skip}
-                    selectText={t.ui.select}
-                    confirmText={t.ui.confirm}
-                />
-            )}
-            {showSaveDialog && (
-                <ChoiceDialog
-                    title="*"
-                    lines={t.save.determination}
-                    options={[t.save.saveOption, t.save.returnOption]}
-                    onSelect={(choice) => {
-                        setShowSaveDialog(false)
-                        if (choice === 0) {
-                            const pos = playerPositionRef.current || { x: 0, y: 0 }
-                            const saveData: SaveData = {
-                                playerX: pos.x,
-                                playerY: pos.y,
-                                currentCharacter: currentCharacter,
-                                visitedCards: visitedCards,
-                                audioEnabled: audioManager.isEnabled(),
-                                language: language,
-                                timestamp: Date.now()
-                            }
-                            saveGame(saveData)
-                            playSave()
-                            setShowSaveConfirmDialog(true)
-                            setTimeout(() => {
-                                setShowSaveConfirmDialog(false)
-                            }, 1500)
-                        }
-                    }}
-                    onClose={() => setShowSaveDialog(false)}
                     skipText={t.ui.skip}
                     selectText={t.ui.select}
                     confirmText={t.ui.confirm}

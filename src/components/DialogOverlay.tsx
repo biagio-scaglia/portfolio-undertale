@@ -22,6 +22,7 @@ const CARD_COLORS: Record<string, string> = {
     experience: '#6bcfd4',    // Soft cyan (professional, calm)
     skills: '#a8d8ea',        // Sky blue (growth, clarity)
     projects: '#ff9a9e',      // Soft coral (creativity, warmth)
+    education: '#c7a8e8',     // Soft purple (knowledge, wisdom)
     contact: '#a8e6cf'        // Mint green (friendly, fresh)
 }
 
@@ -254,6 +255,14 @@ export function DialogOverlay({
                                     lineColor = '#ffd93d'
                                 } else if (line.includes('Developer') || line.includes('Product-Oriented')) {
                                     lineColor = '#6bcfd4'
+                                } else {
+                                    lineColor = textColor
+                                }
+                            } else if (cardId === 'education') {
+                                if (line.includes('ITS Apulia') || line.includes('ITC Tommaso')) {
+                                    lineColor = '#c7a8e8'
+                                } else if (line.includes('Web Developer') || line.includes('Sistemi Informativi') || line.includes('Business Information') || line.includes('Sistemas de Información')) {
+                                    lineColor = '#b894e3'
                                 } else {
                                     lineColor = textColor
                                 }

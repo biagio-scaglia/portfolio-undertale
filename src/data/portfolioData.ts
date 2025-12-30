@@ -50,6 +50,12 @@ export interface PortfolioData {
         phone: string
         location: string
     }
+    education: Array<{
+        institution: string
+        degree: string
+        period: string
+        description?: string[]
+    }>
 }
 
 export const portfolioData: PortfolioData = {
@@ -107,6 +113,23 @@ export const portfolioData: PortfolioData = {
                 'digital gap e promuovere autonomia digitale.',
                 '',
                 'Demo: sgamapp.vercel.app'
+            ]
+        },
+        {
+            company: 'PassBari',
+            role: 'Software Developer Intern',
+            period: 'Lug 2025 – Ago 2025',
+            location: 'Bari, Puglia, Italia',
+            type: 'Presenza',
+            details: [
+                'Sviluppo di piccoli progetti interni e supporto al team',
+                'su applicazioni web.',
+                '',
+                'Miglioramento di funzionalità e refactoring di codice',
+                'esistente in JavaScript e PHP.',
+                '',
+                'Contributo a test, debug e ottimizzazione di',
+                'interfacce web.'
             ]
         }
     ],
@@ -182,17 +205,56 @@ export const portfolioData: PortfolioData = {
         }
     ],
     contact: {
+        website: 'biagio-scaglia.github.io',
         github: 'github.com/biagio-scaglia',
         linkedin: 'linkedin.com/in/biagioscaglia',
         instagram: 'instagram.com/biagigiosdevlog',
         email: 'biagioscaglia01@gmail.com',
         phone: '(+39) 351 315 0134',
         location: 'Bari, Puglia, Italia'
-    }
+    },
+    education: [
+        {
+            institution: 'ITS Apulia Digital Maker',
+            degree: 'Web Developer',
+            period: '2024 – 2026',
+            description: [
+                'Percorso formativo focalizzato su sviluppo web e mobile,',
+                'frontend e backend, UX/UI design, database, sicurezza',
+                'informatica, REST API e intelligenza artificiale.'
+            ]
+        },
+        {
+            institution: 'ITC Tommaso Fiore',
+            degree: 'Diploma in Sistemi Informativi Aziendali',
+            period: '2018 – 2023',
+            description: []
+        }
+    ]
 }
 
 // Helper to generate card preview lines (short version for canvas)
-export function getCardPreviewLines(data: PortfolioData, cardId: string, labels?: { lang: string; tech: string; db: string; tools: string }): string[] {
+export function getCardPreviewLines(data: PortfolioData, cardId: string, labels?: { lang: string; tech: string; db: string; tools: string }, summary?: string): string[] {
+    if (summary) {
+        // Split summary into lines that fit the card width (approximately 40 chars per line)
+        const words = summary.split(' ')
+        const lines: string[] = []
+        let currentLine = ''
+        
+        for (const word of words) {
+            if ((currentLine + word).length <= 40) {
+                currentLine += (currentLine ? ' ' : '') + word
+            } else {
+                if (currentLine) lines.push(currentLine)
+                currentLine = word
+            }
+        }
+        if (currentLine) lines.push(currentLine)
+        
+        return lines
+    }
+    
+    // Fallback to old behavior if no summary provided
     switch (cardId) {
         case 'profile':
             return [
@@ -209,7 +271,19 @@ export function getCardPreviewLines(data: PortfolioData, cardId: string, labels?
                 `${data.experience[0].period}`,
                 '------------------',
                 `${data.experience[1].company}`,
-                `${data.experience[1].role}`
+                `${data.experience[1].role}`,
+                '------------------',
+                `${data.experience[2].company}`,
+                `${data.experience[2].role}`
+            ]
+        case 'education':
+            return [
+                `${data.education[0].institution}`,
+                `${data.education[0].degree}`,
+                `${data.education[0].period}`,
+                '------------------',
+                `${data.education[1].institution}`,
+                `${data.education[1].degree}`
             ]
         case 'skills':
             return [
@@ -275,6 +349,7 @@ export function getDialogContent(data: PortfolioData, cardId: string, labels?: {
             ]).slice(0, -1)
         case 'contact':
             return [
+                data.contact.website ? `Website: ${data.contact.website}` : '',
                 `GitHub: ${data.contact.github}`,
                 `LinkedIn: ${data.contact.linkedin}`,
                 data.contact.instagram ? `Instagram: ${data.contact.instagram}` : '',
@@ -282,6 +357,14 @@ export function getDialogContent(data: PortfolioData, cardId: string, labels?: {
                 `Phone: ${data.contact.phone}`,
                 `Location: ${data.contact.location}`
             ].filter(Boolean)
+        case 'education':
+            return data.education.flatMap(edu => [
+                `${edu.institution} · ${edu.degree}`,
+                `${edu.period}`,
+                '',
+                ...(edu.description || []),
+                ''
+            ]).slice(0, -1)
         default:
             return []
     }

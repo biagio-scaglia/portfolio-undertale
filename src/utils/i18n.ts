@@ -16,6 +16,16 @@ export interface Translations {
         experience: string
         skills: string
         projects: string
+        education: string
+        contact: string
+    }
+    // Card Summaries
+    cardSummaries: {
+        profile: string
+        experience: string
+        skills: string
+        projects: string
+        education: string
         contact: string
     }
     // UI Hints
@@ -26,6 +36,8 @@ export interface Translations {
         select: string
         confirm: string
         close: string
+        save: string
+        character: string
     }
     // Dialogues
     dialogues: {
@@ -74,7 +86,16 @@ const translations: Record<Language, Translations> = {
             experience: 'ESPERIENZA',
             skills: 'COMPETENZE',
             projects: 'PROGETTI',
+            education: 'FORMAZIONE',
             contact: 'CONTATTI'
+        },
+        cardSummaries: {
+            profile: 'Sviluppatore frontend e mobile con orientamento al prodotto. Esperienza in React, Astro, Flutter e Kotlin per creare soluzioni moderne e accessibili.',
+            experience: 'Esperienze lavorative come Frontend Developer e Mobile Developer. Stage in sviluppo web con focus su qualità del codice e UX.',
+            skills: 'Competenze in linguaggi di programmazione, framework moderni e strumenti di sviluppo. Esperienza con database, API e integrazione AI.',
+            projects: 'Progetti personali e open source che dimostrano competenze tecniche. App mobile, tool CLI, dashboard web e integrazioni con API esterne.',
+            education: 'Formazione in sviluppo web e mobile presso ITS Apulia Digital Maker. Diploma in Sistemi Informativi Aziendali con focus su programmazione.',
+            contact: 'Contatti e profili social per rimanere in contatto. Disponibile per collaborazioni e opportunità lavorative nel settore tech.'
         },
         ui: {
             readDetails: '[Z] LEGGI DETTAGLI',
@@ -82,7 +103,9 @@ const translations: Record<Language, Translations> = {
             skip: '[Z] o [X] per SALTARE',
             select: '[↑↓] SELEZIONA',
             confirm: '[Z] CONFERMA',
-            close: '[Z] o [ESC] per CHIUDERE'
+            close: '[Z] o [ESC] per CHIUDERE',
+            save: 'SALVA',
+            character: 'PERSONAGGIO'
         },
         dialogues: {
             sans: {
@@ -140,7 +163,16 @@ const translations: Record<Language, Translations> = {
             experience: 'EXPERIENCE',
             skills: 'SKILLS',
             projects: 'PROJECTS',
+            education: 'EDUCATION',
             contact: 'CONTACT'
+        },
+        cardSummaries: {
+            profile: 'Frontend and mobile developer with product-oriented mindset. Experience with React, Astro, Flutter and Kotlin to create modern and accessible solutions.',
+            experience: 'Work experience as Frontend Developer and Mobile Developer. Internships in web development with focus on code quality and UX.',
+            skills: 'Skills in programming languages, modern frameworks and development tools. Experience with databases, APIs and AI integration.',
+            projects: 'Personal and open source projects demonstrating technical skills. Mobile apps, CLI tools, web dashboards and external API integrations.',
+            education: 'Education in web and mobile development at ITS Apulia Digital Maker. Diploma in Business Information Systems with focus on programming.',
+            contact: 'Contacts and social profiles to stay in touch. Available for collaborations and job opportunities in the tech sector.'
         },
         ui: {
             readDetails: '[Z] READ DETAILS',
@@ -148,7 +180,9 @@ const translations: Record<Language, Translations> = {
             skip: '[Z] or [X] to SKIP',
             select: '[↑↓] SELECT',
             confirm: '[Z] CONFIRM',
-            close: '[Z] or [ESC] to CLOSE'
+            close: '[Z] or [ESC] to CLOSE',
+            save: 'SAVE',
+            character: 'CHARACTER'
         },
         dialogues: {
             sans: {
@@ -206,7 +240,16 @@ const translations: Record<Language, Translations> = {
             experience: 'EXPERIENCIA',
             skills: 'HABILIDADES',
             projects: 'PROYECTOS',
+            education: 'EDUCACIÓN',
             contact: 'CONTACTO'
+        },
+        cardSummaries: {
+            profile: 'Desarrollador frontend y mobile con mentalidad orientada al producto. Experiencia con React, Astro, Flutter y Kotlin para crear soluciones modernas y accesibles.',
+            experience: 'Experiencia laboral como Frontend Developer y Mobile Developer. Prácticas en desarrollo web con enfoque en calidad del código y UX.',
+            skills: 'Habilidades en lenguajes de programación, frameworks modernos y herramientas de desarrollo. Experiencia con bases de datos, APIs e integración AI.',
+            projects: 'Proyectos personales y open source que demuestran habilidades técnicas. Apps móviles, herramientas CLI, dashboards web e integraciones con APIs externas.',
+            education: 'Formación en desarrollo web y mobile en ITS Apulia Digital Maker. Diploma en Sistemas de Información Empresarial con enfoque en programación.',
+            contact: 'Contactos y perfiles sociales para mantener el contacto. Disponible para colaboraciones y oportunidades laborales en el sector tecnológico.'
         },
         ui: {
             readDetails: '[Z] LEER DETALLES',
@@ -214,7 +257,9 @@ const translations: Record<Language, Translations> = {
             skip: '[Z] o [X] para SALTAR',
             select: '[↑↓] SELECCIONAR',
             confirm: '[Z] CONFIRMAR',
-            close: '[Z] o [ESC] para CERRAR'
+            close: '[Z] o [ESC] para CERRAR',
+            save: 'GUARDAR',
+            character: 'PERSONAJE'
         },
         dialogues: {
             sans: {

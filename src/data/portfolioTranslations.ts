@@ -57,6 +57,23 @@ export const portfolioTranslations: Record<Language, PortfolioData> = {
                     '',
                     'Demo: sgamapp.vercel.app'
                 ]
+            },
+            {
+                company: 'PassBari',
+                role: 'Software Developer Intern',
+                period: 'Lug 2025 – Ago 2025',
+                location: 'Bari, Puglia, Italia',
+                type: 'Presenza',
+                details: [
+                    'Sviluppo di piccoli progetti interni e supporto al team',
+                    'su applicazioni web.',
+                    '',
+                    'Miglioramento di funzionalità e refactoring di codice',
+                    'esistente in JavaScript e PHP.',
+                    '',
+                    'Contributo a test, debug e ottimizzazione di',
+                    'interfacce web.'
+                ]
             }
         ],
         skills: {
@@ -131,13 +148,32 @@ export const portfolioTranslations: Record<Language, PortfolioData> = {
             }
         ],
         contact: {
+            website: 'biagio-scaglia.github.io',
             github: 'github.com/biagio-scaglia',
             linkedin: 'linkedin.com/in/biagioscaglia',
             instagram: 'instagram.com/biagigiosdevlog',
             email: 'biagioscaglia01@gmail.com',
             phone: '(+39) 351 315 0134',
             location: 'Bari, Puglia, Italia'
-        }
+        },
+        education: [
+            {
+                institution: 'ITS Apulia Digital Maker',
+                degree: 'Web Developer',
+                period: '2024 – 2026',
+                description: [
+                    'Percorso formativo focalizzato su sviluppo web e mobile,',
+                    'frontend e backend, UX/UI design, database, sicurezza',
+                    'informatica, REST API e intelligenza artificiale.'
+                ]
+            },
+            {
+                institution: 'ITC Tommaso Fiore',
+                degree: 'Diploma in Sistemi Informativi Aziendali',
+                period: '2018 – 2023',
+                description: []
+            }
+        ]
     },
     en: {
         profile: {
@@ -194,6 +230,23 @@ export const portfolioTranslations: Record<Language, PortfolioData> = {
                     'digital gap and promote digital autonomy.',
                     '',
                     'Demo: sgamapp.vercel.app'
+                ]
+            },
+            {
+                company: 'PassBari',
+                role: 'Software Developer Intern',
+                period: 'Jul 2025 – Aug 2025',
+                location: 'Bari, Puglia, Italy',
+                type: 'On-site',
+                details: [
+                    'Development of small internal projects and team support',
+                    'on web applications.',
+                    '',
+                    'Feature improvement and refactoring of existing code',
+                    'in JavaScript and PHP.',
+                    '',
+                    'Contribution to testing, debugging and optimization of',
+                    'web interfaces.'
                 ]
             }
         ],
@@ -269,13 +322,32 @@ export const portfolioTranslations: Record<Language, PortfolioData> = {
             }
         ],
         contact: {
+            website: 'biagio-scaglia.github.io',
             github: 'github.com/biagio-scaglia',
             linkedin: 'linkedin.com/in/biagioscaglia',
             instagram: 'instagram.com/biagigiosdevlog',
             email: 'biagioscaglia01@gmail.com',
             phone: '(+39) 351 315 0134',
             location: 'Bari, Puglia, Italy'
-        }
+        },
+        education: [
+            {
+                institution: 'ITS Apulia Digital Maker',
+                degree: 'Web Developer',
+                period: '2024 – 2026',
+                description: [
+                    'Training program focused on web and mobile development,',
+                    'frontend and backend, UX/UI design, databases, cybersecurity,',
+                    'REST APIs and artificial intelligence.'
+                ]
+            },
+            {
+                institution: 'ITC Tommaso Fiore',
+                degree: 'Diploma in Business Information Systems',
+                period: '2018 – 2023',
+                description: []
+            }
+        ]
     },
     es: {
         profile: {
@@ -332,6 +404,23 @@ export const portfolioTranslations: Record<Language, PortfolioData> = {
                     'brecha digital y promover la autonomía digital.',
                     '',
                     'Demo: sgamapp.vercel.app'
+                ]
+            },
+            {
+                company: 'PassBari',
+                role: 'Desarrollador de Software Interno',
+                period: 'Jul 2025 – Ago 2025',
+                location: 'Bari, Puglia, Italia',
+                type: 'Presencial',
+                details: [
+                    'Desarrollo de pequeños proyectos internos y apoyo al equipo',
+                    'en aplicaciones web.',
+                    '',
+                    'Mejora de funcionalidades y refactorización de código',
+                    'existente en JavaScript y PHP.',
+                    '',
+                    'Contribución a pruebas, depuración y optimización de',
+                    'interfaces web.'
                 ]
             }
         ],
@@ -407,13 +496,32 @@ export const portfolioTranslations: Record<Language, PortfolioData> = {
             }
         ],
         contact: {
+            website: 'biagio-scaglia.github.io',
             github: 'github.com/biagio-scaglia',
             linkedin: 'linkedin.com/in/biagioscaglia',
             instagram: 'instagram.com/biagigiosdevlog',
             email: 'biagioscaglia01@gmail.com',
             phone: '(+39) 351 315 0134',
             location: 'Bari, Puglia, Italia'
-        }
+        },
+        education: [
+            {
+                institution: 'ITS Apulia Digital Maker',
+                degree: 'Web Developer',
+                period: '2024 – 2026',
+                description: [
+                    'Programa formativo centrado en desarrollo web y móvil,',
+                    'frontend y backend, diseño UX/UI, bases de datos, ciberseguridad,',
+                    'REST APIs e inteligencia artificial.'
+                ]
+            },
+            {
+                institution: 'ITC Tommaso Fiore',
+                degree: 'Diploma en Sistemas de Información Empresarial',
+                period: '2018 – 2023',
+                description: []
+            }
+        ]
     }
 }
 
