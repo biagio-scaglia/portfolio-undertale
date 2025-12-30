@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { StartScreen } from '../components/StartScreen'
 import { Explore } from '../components/Explore'
-import type { GameMode } from './GameState'
 import type { Language } from '../data/portfolioData'
 import { getTranslations } from '../utils/i18n'
+
+type GameMode = 'start' | 'explore' | 'quit'
 
 function App() {
     const [mode, setMode] = useState<GameMode>('start')

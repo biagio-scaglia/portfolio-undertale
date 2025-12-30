@@ -4,114 +4,27 @@ import { ChoiceDialog } from './ChoiceDialog'
 import { AudioControl } from './AudioControl'
 import { SaveButton } from './SaveButton'
 import { CharacterButton } from './CharacterButton'
-import { getCardPreviewLines, getDialogContent, type CardData, type Language } from '../data/portfolioData'
+import { getDialogContent, type CardData, type Language } from '../data/portfolioData'
 import { portfolioTranslations } from '../data/portfolioTranslations'
 import { getTranslations } from '../utils/i18n'
 import { playCardOpen } from '../utils/audioManager'
 import { loadGame, type SaveData } from '../utils/saveSystem'
 import { audioManager } from '../utils/audioManager'
-
-const PLAYER_SPEED = 2
-const PLAYER_WIDTH = 32
-const PLAYER_HEIGHT = 48
-const CARD_WIDTH = 350
-const CARD_HEIGHT = 220
-const CARD_SPACING = 50
-const CARD_COLLISION_PADDING = 10
-const NPC_INTERACTION_DISTANCE = 100
-const NPC_COLLISION_PADDING = 20
-const ANIMATION_FRAME_RATE = 20
-const SANS_ANIMATION_FRAMES = 4
-const SCROLL_THROTTLE_MS = 16
-const SCROLL_THRESHOLD = 5
-const SCROLL_SMOOTHING = 0.3
-const COLOR_ACTIVE = '#f7d51d'
-const COLOR_INACTIVE = '#ffffff'
-const COLOR_TEXT = '#ffffff'
-
-const CARD_COLORS: Record<string, string> = {
-    profile: '#ffd93d',
-    experience: '#6bcfd4',
-    skills: '#a8d8ea',
-    projects: '#ff9a9e',
-    education: '#c7a8e8',
-    contact: '#a8e6cf'
-}
-
-function calculateCardPositions(canvasWidth: number, _canvasHeight: number, language: Language): CardData[] {
-    const portfolioData = portfolioTranslations[language]
-    const t = getTranslations(language)
-    const cardsPerRow = 2
-    const totalWidth = cardsPerRow * CARD_WIDTH + (cardsPerRow - 1) * CARD_SPACING
-    const startX = (canvasWidth - totalWidth) / 2
-    // Add space for title (80px for title + 40px spacing)
-    const TITLE_HEIGHT = 80
-    const TITLE_SPACING = 40
-    const startY = TITLE_HEIGHT + TITLE_SPACING
-    const cards: CardData[] = []
-    cards.push({
-        id: 'profile',
-        x: startX,
-        y: startY,
-        w: CARD_WIDTH,
-        h: CARD_HEIGHT,
-        title: t.cards.profile,
-        lines: getCardPreviewLines(portfolioData, 'profile', t.labels, t.cardSummaries.profile),
-        iconClass: 'fa-solid fa-user'
-    })
-    cards.push({
-        id: 'experience',
-        x: startX + CARD_WIDTH + CARD_SPACING,
-        y: startY,
-        w: CARD_WIDTH,
-        h: CARD_HEIGHT - 20,
-        title: t.cards.experience,
-        lines: getCardPreviewLines(portfolioData, 'experience', t.labels, t.cardSummaries.experience),
-        iconClass: 'fa-solid fa-briefcase'
-    })
-    cards.push({
-        id: 'skills',
-        x: startX,
-        y: startY + CARD_HEIGHT + CARD_SPACING,
-        w: CARD_WIDTH,
-        h: CARD_HEIGHT - 20,
-        title: t.cards.skills,
-        lines: getCardPreviewLines(portfolioData, 'skills', t.labels, t.cardSummaries.skills),
-        iconClass: 'fa-solid fa-code'
-    })
-    cards.push({
-        id: 'projects',
-        x: startX + CARD_WIDTH + CARD_SPACING,
-        y: startY + CARD_HEIGHT + CARD_SPACING,
-        w: CARD_WIDTH,
-        h: CARD_HEIGHT,
-        title: t.cards.projects,
-        lines: getCardPreviewLines(portfolioData, 'projects', t.labels, t.cardSummaries.projects),
-        iconClass: 'fa-solid fa-rocket'
-    })
-    cards.push({
-        id: 'education',
-        x: startX,
-        y: startY + (CARD_HEIGHT + CARD_SPACING) * 2,
-        w: CARD_WIDTH,
-        h: CARD_HEIGHT - 20,
-        title: t.cards.education,
-        lines: getCardPreviewLines(portfolioData, 'education', t.labels, t.cardSummaries.education),
-        iconClass: 'fa-solid fa-graduation-cap'
-    })
-    cards.push({
-        id: 'contact',
-        x: startX + CARD_WIDTH + CARD_SPACING,
-        y: startY + (CARD_HEIGHT + CARD_SPACING) * 2,
-        w: CARD_WIDTH,
-        h: CARD_HEIGHT - 40,
-        title: t.cards.contact,
-        lines: getCardPreviewLines(portfolioData, 'contact', t.labels, t.cardSummaries.contact),
-        iconClass: 'fa-solid fa-envelope'
-    })
-    
-    return cards
-}
+import { 
+    PLAYER_SPEED, 
+    PLAYER_WIDTH, 
+    PLAYER_HEIGHT, 
+    CARD_HEIGHT, 
+    CARD_SPACING, 
+    TITLE_HEIGHT, 
+    TITLE_SPACING,
+    ANIMATION_FRAME_RATE,
+    SANS_ANIMATION_FRAMES
+} from '../constants/gameConstants'
+import { calculateCardPositions } from '../utils/cardUtils'
+import { scrollToFollowPlayer } from '../utils/scrollUtils'
+import { checkCardCollision, checkNPCCollision } from '../utils/collisionUtils'
+import { drawCard, drawTitle, drawInteractionHint } from '../utils/canvasUtils'
 
 type CharacterType = 'frisk' | 'sans'
 
@@ -122,8 +35,6 @@ type Props = {
 export function Explore({ language }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const cardsRef = useRef<CardData[]>([])
-    const playerImgRef = useRef<HTMLImageElement>(null)
-    const sansNPCImgRef = useRef<HTMLImageElement>(null)
 
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
     const [playerPos, setPlayerPos] = useState<{ x: number; y: number; dir: string; frame: number } | null>(null)
@@ -181,9 +92,6 @@ export function Explore({ language }: Props) {
         if (!ctx) return
 
         canvas.width = window.innerWidth
-        // Add space for title at the top
-        const TITLE_HEIGHT = 80
-        const TITLE_SPACING = 40
         const minHeight = TITLE_HEIGHT + TITLE_SPACING + (CARD_HEIGHT + CARD_SPACING) * 3 + CARD_SPACING
         canvas.height = Math.max(window.innerHeight, minHeight)
         ctx.imageSmoothingEnabled = false
@@ -204,8 +112,6 @@ export function Explore({ language }: Props) {
             const oldHeight = canvas.height
             
             canvas.width = window.innerWidth
-            const TITLE_HEIGHT = 80
-            const TITLE_SPACING = 40
             const newMinHeight = TITLE_HEIGHT + TITLE_SPACING + (CARD_HEIGHT + CARD_SPACING) * 3 + CARD_SPACING
             canvas.height = Math.max(window.innerHeight, newMinHeight)
             
@@ -259,77 +165,24 @@ export function Explore({ language }: Props) {
         
         playerPositionRef.current = { x: player.x, y: player.y }
 
-        // NPC positions: if loading from save, NPC should be at saved player position
-        // Otherwise, NPC is at spawn position
-        const npcX = saved ? initialX : spawnX
-        const npcY = saved ? initialY : spawnY
-        
-        const sansNPCBaseX = npcX
-        const sansNPCBaseY = npcY
+        // NPC always starts at spawn position
         const sansNPC = {
-            x: sansNPCBaseX,
-            y: sansNPCBaseY,
+            x: spawnX,
+            y: spawnY,
             w: PLAYER_WIDTH,
             h: PLAYER_HEIGHT,
-            dir: 'avanti',
+            dir: 'avanti' as const,
             frame: 0,
             animationFrame: 0
         }
         
-        // If loading from save, set NPC positions based on current character
-        if (saved) {
-            if (saved.currentCharacter === 'sans') {
-                // Player is Sans, so Sans NPC should be at spawn
-                sansNPC.x = spawnX
-                sansNPC.y = spawnY
-            } else {
-                // Player is Frisk, so Sans NPC should be at spawn position
-                sansNPC.x = spawnX
-                sansNPC.y = spawnY
-            }
-        } else {
-            // Initial setup: Frisk is player, Sans is NPC at spawn
-            sansNPC.x = spawnX
-            sansNPC.y = spawnY
-        }
-        
-        // Initialize NPC positions for img rendering (player appears only when moving)
+        // Initialize NPC positions for img rendering
         setSansNPCPos({
             x: sansNPC.x,
             y: sansNPC.y,
             dir: sansNPC.dir,
             frame: sansNPC.frame
         })
-
-        const friskSprites: Record<string, HTMLImageElement> = {
-            avanti: new Image(),
-            dietro: new Image(),
-            sinistra: new Image(),
-            destra: new Image(),
-            corsa: new Image()
-        }
-        friskSprites.avanti.src = '/assets/sprites/frisk/avanti.png'
-        friskSprites.dietro.src = '/assets/sprites/frisk/dietro.png'
-        friskSprites.sinistra.src = '/assets/sprites/frisk/sinistra.png'
-        friskSprites.destra.src = '/assets/sprites/frisk/destra.png'
-        friskSprites.corsa.src = '/assets/sprites/frisk/corsa.gif'
-
-        const sansSprites: Record<string, HTMLImageElement[]> = {
-            avanti: [],
-            dietro: [],
-            sinistra: [],
-            destra: []
-        }
-        const sansDirections = ['avanti', 'dietro', 'sinistra', 'destra']
-        sansDirections.forEach(dir => {
-            for (let i = 1; i <= 4; i++) {
-                const img = new Image()
-                img.src = `/assets/sprites/sans/sans-${dir}-${i}.png`
-                sansSprites[dir].push(img)
-            }
-        })
-
-        // Save point now uses HTML img element for GIF animation
 
         const keys: Record<string, boolean> = {}
         
@@ -355,25 +208,12 @@ export function Explore({ language }: Props) {
         window.addEventListener('keydown', handleKeyDown)
         window.addEventListener('keyup', handleKeyUp)
 
-        const handleCharacterSwitch = (e: any) => {
-            const newCharacter = e.detail.newCharacter
-            // Only swap positions if this is a manual switch, not on load
-            // On load, positions are already set correctly
-            if (!saved) {
-                if (newCharacter === 'frisk') {
-                    // Player becomes Frisk, keep player position, move Sans to spawn position
-                    sansNPC.x = spawnX
-                    sansNPC.y = spawnY
-                }
-            } else {
-                // On load, positions are already set correctly
-                if (newCharacter === 'frisk') {
-                    sansNPC.x = spawnX
-                    sansNPC.y = spawnY
-                }
-            }
+        const handleCharacterSwitch = () => {
+            // NPC always stays at spawn position
+            sansNPC.x = spawnX
+            sansNPC.y = spawnY
         }
-        window.addEventListener('character-switch', handleCharacterSwitch)
+        window.addEventListener('character-switch', () => handleCharacterSwitch())
 
         const handleInteractSans = () => {
             if (currentCharacterRef.current === 'frisk') {
@@ -387,35 +227,13 @@ export function Explore({ language }: Props) {
         const activeSansCollisionRef = { current: false }
 
         function checkCollisions() {
-            activeCollisionRef.current = null
-            activeSansCollisionRef.current = false
-            
-            for (const card of CARDS) {
-                if (
-                    player.x < card.x + card.w + CARD_COLLISION_PADDING &&
-                    player.x + player.w > card.x - CARD_COLLISION_PADDING &&
-                    player.y < card.y + card.h + CARD_COLLISION_PADDING &&
-                    player.y + player.h > card.y - CARD_COLLISION_PADDING
-                ) {
-                    activeCollisionRef.current = card.id
-                    break
-                }
-            }
+            activeCollisionRef.current = checkCardCollision(player, CARDS)
             
             if (currentCharacterRef.current === 'frisk') {
-                const playerCenterX = player.x + player.w / 2
-                const playerCenterY = player.y + player.h / 2
-                const sansCenterX = sansNPC.x + sansNPC.w / 2
-                const sansCenterY = sansNPC.y + sansNPC.h / 2
-                const distance = Math.sqrt(
-                    Math.pow(playerCenterX - sansCenterX, 2) + 
-                    Math.pow(playerCenterY - sansCenterY, 2)
-                )
-                if (distance < NPC_INTERACTION_DISTANCE) {
-                    activeSansCollisionRef.current = true
-                }
+                activeSansCollisionRef.current = checkNPCCollision(player, sansNPC)
+            } else {
+                activeSansCollisionRef.current = false
             }
-            
         }
 
         function update() {
@@ -490,164 +308,18 @@ export function Explore({ language }: Props) {
             }
         }
         
-        let lastScrollTime = 0
-        
-        function scrollToFollowPlayer(player: { x: number; y: number; w: number; h: number }, canvas: HTMLCanvasElement) {
-            const now = Date.now()
-            if (now - lastScrollTime < SCROLL_THROTTLE_MS) {
-                return
-            }
-            lastScrollTime = now
-            
-            const viewportHeight = window.innerHeight
-            const viewportWidth = window.innerWidth
-            const canvasRect = canvas.getBoundingClientRect()
-            const playerCanvasY = player.y + player.h / 2
-            const playerCanvasX = player.x + player.w / 2
-            const playerAbsoluteY = canvasRect.top + playerCanvasY
-            const playerAbsoluteX = canvasRect.left + playerCanvasX
-            const viewportCenterY = window.scrollY + viewportHeight / 2
-            const viewportCenterX = window.scrollX + viewportWidth / 2
-            const scrollDeltaY = playerAbsoluteY - viewportCenterY
-            const scrollDeltaX = playerAbsoluteX - viewportCenterX
-            
-            if (Math.abs(scrollDeltaY) < SCROLL_THRESHOLD && Math.abs(scrollDeltaX) < SCROLL_THRESHOLD) {
-                return
-            }
-            
-            const newScrollY = window.scrollY + scrollDeltaY * SCROLL_SMOOTHING
-            const newScrollX = window.scrollX + scrollDeltaX * SCROLL_SMOOTHING
-            const maxScrollY = Math.max(0, document.documentElement.scrollHeight - viewportHeight)
-            const maxScrollX = Math.max(0, document.documentElement.scrollWidth - viewportWidth)
-            
-            window.scrollTo({
-                top: Math.max(0, Math.min(newScrollY, maxScrollY)),
-                left: Math.max(0, Math.min(newScrollX, maxScrollX)),
-                behavior: 'auto'
-            })
-        }
-
-        function drawCard(card: CardData) {
-            if (!ctx) return
-            const isActive = card.id === activeCollisionRef.current
-
-            ctx.fillStyle = 'black'
-            ctx.fillRect(card.x, card.y, card.w, card.h)
-            ctx.strokeStyle = isActive ? COLOR_ACTIVE : COLOR_INACTIVE
-            ctx.lineWidth = isActive ? 3 : 2
-            ctx.strokeRect(card.x, card.y, card.w, card.h)
-
-            if (isActive) {
-                ctx.strokeStyle = COLOR_ACTIVE
-                ctx.lineWidth = 1
-                ctx.strokeRect(card.x + 4, card.y + 4, card.w - 8, card.h - 8)
-            }
-
-            ctx.fillStyle = isActive ? COLOR_ACTIVE : COLOR_INACTIVE
-            ctx.font = 'bold 24px "VT323", monospace'
-            const titleX = card.x + CARD_COLLISION_PADDING
-            const titleY = card.y + 35
-            ctx.fillText(card.title, titleX, titleY)
-
-            const cardTextColor = CARD_COLORS[card.id] || COLOR_TEXT
-            ctx.fillStyle = cardTextColor
-            ctx.font = '18px "VT323", monospace'
-            const textPadding = CARD_COLLISION_PADDING
-            const maxTextWidth = card.w - textPadding * 2
-            let textY = card.y + 65
-            
-            card.lines.forEach((line) => {
-                if (line.trim()) {
-                    if (line.includes('---') || line.includes('------------------')) {
-                        ctx.fillStyle = cardTextColor
-                    } else {
-                        ctx.fillStyle = cardTextColor
-                    }
-                    
-                    const metrics = ctx.measureText(line)
-                    
-                    if (metrics.width <= maxTextWidth) {
-                        ctx.fillText(line, card.x + textPadding, textY)
-                        textY += 22
-                    } else {
-                        const words = line.split(' ')
-                        let currentLine = ''
-                        
-                        words.forEach((word, i) => {
-                            const testLine = currentLine + (currentLine ? ' ' : '') + word
-                            const testMetrics = ctx.measureText(testLine)
-                            
-                            if (testMetrics.width > maxTextWidth && currentLine) {
-                                ctx.fillText(currentLine, card.x + textPadding, textY)
-                                textY += 22
-                                currentLine = word
-                            } else {
-                                currentLine = testLine
-                            }
-                            
-                            if (i === words.length - 1) {
-                                ctx.fillText(currentLine, card.x + textPadding, textY)
-                                textY += 22
-                            }
-                        })
-                    }
-                    
-                    if (textY > card.y + card.h - 30) {
-                        return
-                    }
-                }
-            })
-
-            if (isActive) {
-                ctx.fillStyle = COLOR_ACTIVE
-                ctx.font = '16px "VT323", monospace'
-                const hintText = t.ui.readDetails
-                const hintX = card.x + card.w - CARD_COLLISION_PADDING
-                const hintY = card.y + card.h - 15
-                const textWidth = ctx.measureText(hintText).width
-                ctx.fillText(hintText, hintX - textWidth, hintY)
-                
-                const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7
-                ctx.globalAlpha = pulse
-                ctx.fillStyle = COLOR_ACTIVE
-                ctx.fillRect(card.x + 5, card.y + 5, 10, 10)
-                ctx.globalAlpha = 1.0
-            }
-        }
-
-        function drawTitle() {
-            if (!ctx || !canvas) return
-            const titleText = 'Portfolio di Biagio'
-            ctx.fillStyle = COLOR_TEXT
-            ctx.font = 'bold 48px "VT323", monospace'
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'top'
-            const titleX = canvas.width / 2
-            const titleY = 20
-            ctx.fillText(titleText, titleX, titleY)
-            ctx.textAlign = 'left'
-            ctx.textBaseline = 'alphabetic'
-        }
-
         function draw() {
             if (!ctx || !canvas) return
             ctx.clearRect(0, 0, canvas.width, canvas.height)
             
-            drawTitle()
-            CARDS.forEach(card => drawCard(card))
+            drawTitle(ctx, canvas)
+            CARDS.forEach(card => {
+                drawCard(ctx, card, card.id === activeCollisionRef.current, t)
+            })
             
-            // Draw interaction hints on canvas (for Sans, Frisk)
             if (currentCharacterRef.current === 'frisk' && activeSansCollisionRef.current) {
-                const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7
-                ctx.globalAlpha = pulse
-                ctx.fillStyle = COLOR_ACTIVE
-                ctx.font = '16px "VT323", monospace'
-                const hintText = t.ui.talk
-                const textWidth = ctx.measureText(hintText).width
-                ctx.fillText(hintText, sansNPC.x + sansNPC.w / 2 - textWidth / 2, sansNPC.y - 10)
-                ctx.globalAlpha = 1.0
+                drawInteractionHint(ctx, sansNPC.x + sansNPC.w / 2, sansNPC.y, t.ui.talk)
             }
-            
         }
 
         function loop() {
@@ -736,7 +408,6 @@ export function Explore({ language }: Props) {
             {/* Player character as img */}
             {playerPos && (
                 <img
-                    ref={playerImgRef}
                     src={currentCharacter === 'frisk' 
                         ? `/assets/sprites/frisk/${playerPos.dir}.png`
                         : `/assets/sprites/sans/sans-${playerPos.dir}-${(playerPos.frame % 4) + 1}.png`
@@ -753,16 +424,10 @@ export function Explore({ language }: Props) {
                         zIndex: 10,
                         willChange: 'transform'
                     }}
-                    onError={(e) => {
-                        // Fallback if image fails to load
-                        console.warn('Failed to load player sprite:', e)
-                    }}
                 />
             )}
-            {/* Sans NPC as img */}
             {sansNPCPos && currentCharacter === 'frisk' && (
                 <img
-                    ref={sansNPCImgRef}
                     src={`/assets/sprites/sans/sans-${sansNPCPos.dir}-${(sansNPCPos.frame % 4) + 1}.png`}
                     alt="Sans NPC"
                     style={{
@@ -775,9 +440,6 @@ export function Explore({ language }: Props) {
                         pointerEvents: 'none',
                         zIndex: 10,
                         willChange: 'transform'
-                    }}
-                    onError={(e) => {
-                        console.warn('Failed to load Sans NPC sprite:', e)
                     }}
                 />
             )}

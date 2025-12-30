@@ -1,30 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { playCardClose } from '../utils/audioManager'
+import { CARD_COLORS } from '../constants/gameConstants'
 
 type Props = {
     title: string
     lines: string[]
     iconClass?: string
     onClose: () => void
-    typewriterSpeed?: number // milliseconds per character
+    typewriterSpeed?: number
     skipText?: string
     closeText?: string
-    cardId?: string // For color theming
+    cardId?: string
 }
 
-// Typewriter effect: 20ms per character for consistent pacing
 const DEFAULT_TYPEWRITER_SPEED = 20
-
-// Card text colors - matching Explore.tsx, optimized for readability
-const CARD_COLORS: Record<string, string> = {
-    profile: '#ffd93d',      // Warm golden yellow (personal, inviting)
-    experience: '#6bcfd4',    // Soft cyan (professional, calm)
-    skills: '#a8d8ea',        // Sky blue (growth, clarity)
-    projects: '#ff9a9e',      // Soft coral (creativity, warmth)
-    education: '#c7a8e8',     // Soft purple (knowledge, wisdom)
-    contact: '#a8e6cf'        // Mint green (friendly, fresh)
-}
 
 export function DialogOverlay({ 
     title, 
@@ -175,106 +165,11 @@ export function DialogOverlay({
                     {title}
                 </div>
                 <div className="dialog-content">
-                    {displayedLines.map((line, i) => {
-                        let lineColor = textColor
-                        
-                        if (cardId) {
-                            if (cardId === 'skills') {
-                                if (line.includes('Programming Languages:') || line.includes('Linguaggi di Programmazione:') || line.includes('Lenguajes de Programación:')) {
-                                    lineColor = '#6bcfd4'
-                                } else if (line.includes('Framework') || line.includes('Tecnologie:') || line.includes('Tecnologías:')) {
-                                    lineColor = '#ff9a9e'
-                                } else if (line.includes('Database:') || line.includes('Database') || line.includes('Base de Datos:')) {
-                                    lineColor = '#a8d8ea'
-                                } else if (line.includes('Other:') || line.includes('Altro:') || line.includes('Otros:')) {
-                                    lineColor = '#a8e6cf'
-                                } else if (line.trim() && !line.includes(':')) {
-                                    lineColor = textColor
-                                }
-                            } else if (cardId === 'projects') {
-                                const projectIndicators = ['Ruby Pulse', 'Monster Hunter', 'Nintendo AI', 'Game Price', 'Japan Atlas']
-                                const isProjectStart = projectIndicators.some(indicator => line.includes(indicator))
-                                const projectIndex = projectIndicators.findIndex(indicator => line.includes(indicator))
-                                
-                                if (isProjectStart) {
-                                    const projectColors = ['#ffd93d', '#6bcfd4', '#ff9a9e', '#a8d8ea', '#a8e6cf']
-                                    lineColor = projectColors[projectIndex] || textColor
-                                } else if (line.includes('Tech:') || line.includes('GitHub:')) {
-                                    lineColor = textColor
-                                } else if (line.trim() && !line.includes('–') && !line.includes('-')) {
-                                    let nearestProjectIndex = -1
-                                    for (let j = i - 1; j >= 0; j--) {
-                                        const checkIndex = projectIndicators.findIndex(indicator => displayedLines[j]?.includes(indicator))
-                                        if (checkIndex !== -1) {
-                                            nearestProjectIndex = checkIndex
-                                            break
-                                        }
-                                    }
-                                    if (nearestProjectIndex !== -1) {
-                                        const projectColors = ['#ffd93d', '#6bcfd4', '#ff9a9e', '#a8d8ea', '#a8e6cf']
-                                        lineColor = projectColors[nearestProjectIndex] || textColor
-                                    }
-                                }
-                            } else if (cardId === 'experience') {
-                                const companies = ['Yumeverse Games', 'sgamapp']
-                                const isCompanyStart = companies.some(company => line.includes(company))
-                                const companyIndex = companies.findIndex(company => line.includes(company))
-                                
-                                if (isCompanyStart) {
-                                    const companyColors = ['#6bcfd4', '#ff9a9e']
-                                    lineColor = companyColors[companyIndex] || textColor
-                                } else if (line.includes('·') && line.includes('Developer')) {
-                                    let nearestCompanyIndex = -1
-                                    for (let j = i - 1; j >= 0; j--) {
-                                        const checkIndex = companies.findIndex(company => displayedLines[j]?.includes(company))
-                                        if (checkIndex !== -1) {
-                                            nearestCompanyIndex = checkIndex
-                                            break
-                                        }
-                                    }
-                                    if (nearestCompanyIndex !== -1) {
-                                        const companyColors = ['#6bcfd4', '#ff9a9e']
-                                        lineColor = companyColors[nearestCompanyIndex] || textColor
-                                    }
-                                } else if (line.trim() && !line.includes('·')) {
-                                    let nearestCompanyIndex = -1
-                                    for (let j = i - 1; j >= 0; j--) {
-                                        const checkIndex = companies.findIndex(company => displayedLines[j]?.includes(company))
-                                        if (checkIndex !== -1) {
-                                            nearestCompanyIndex = checkIndex
-                                            break
-                                        }
-                                    }
-                                    if (nearestCompanyIndex !== -1) {
-                                        const companyColors = ['#6bcfd4', '#ff9a9e']
-                                        lineColor = companyColors[nearestCompanyIndex] || textColor
-                                    }
-                                }
-                            } else if (cardId === 'profile') {
-                                if (line.includes('Biagio Scaglia')) {
-                                    lineColor = '#ffd93d'
-                                } else if (line.includes('Developer') || line.includes('Product-Oriented')) {
-                                    lineColor = '#6bcfd4'
-                                } else {
-                                    lineColor = textColor
-                                }
-                            } else if (cardId === 'education') {
-                                if (line.includes('ITS Apulia') || line.includes('ITC Tommaso')) {
-                                    lineColor = '#c7a8e8'
-                                } else if (line.includes('Web Developer') || line.includes('Sistemi Informativi') || line.includes('Business Information') || line.includes('Sistemas de Información')) {
-                                    lineColor = '#b894e3'
-                                } else {
-                                    lineColor = textColor
-                                }
-                            }
-                        }
-                        
-                        return (
-                            <div key={i} className="dialog-line" style={{ color: lineColor }}>
-                                {renderLine(line)}
-                            </div>
-                        )
-                    })}
+                    {displayedLines.map((line, i) => (
+                        <div key={i} className="dialog-line" style={{ color: textColor }}>
+                            {renderLine(line)}
+                        </div>
+                    ))}
                     {!isComplete && <span className="dialog-cursor">█</span>}
                 </div>
                 <div className="dialog-footer">
