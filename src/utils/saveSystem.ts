@@ -1,5 +1,3 @@
-// Save System - Undertale style "DETERMINATION"
-
 export interface SaveData {
     playerX: number
     playerY: number

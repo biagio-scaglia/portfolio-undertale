@@ -34,7 +34,6 @@ export function ChoiceDialog({
     const dialogRef = useRef<HTMLDivElement>(null)
     const soundRef = useRef<HTMLAudioElement | null>(null)
 
-    // Play sound if provided
     useEffect(() => {
         if (soundFile && !soundRef.current) {
             const audio = new Audio(soundFile)
@@ -52,10 +51,8 @@ export function ChoiceDialog({
         }
     }, [soundFile])
 
-    // Keyboard handling
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
-            // Instant-complete typewriter on Z or X
             if ((e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'x') && !isComplete) {
                 e.preventDefault()
                 setDisplayedLines(lines)
@@ -65,7 +62,7 @@ export function ChoiceDialog({
                 return
             }
             
-            if (!isComplete) return // Wait for text to complete
+            if (!isComplete) return
             
             if (e.key === 'ArrowUp') {
                 setSelected(prev => {
@@ -98,7 +95,6 @@ export function ChoiceDialog({
         return () => window.removeEventListener('keydown', handleKey)
     }, [selected, options.length, isComplete, onSelect, onClose, lines])
 
-    // Typewriter effect
     useEffect(() => {
         if (currentLineIndex >= lines.length) {
             setIsComplete(true)
@@ -123,12 +119,11 @@ export function ChoiceDialog({
                 setCurrentLineIndex(i => i + 1)
                 setCharIndex(0)
             }
-        }, 20) // Consistent typewriter speed (20ms per character)
+        }, 20)
 
         return () => clearTimeout(timer)
     }, [charIndex, currentLineIndex, lines])
 
-    // Reset when lines change
     useEffect(() => {
         setDisplayedLines([])
         setCurrentLineIndex(0)

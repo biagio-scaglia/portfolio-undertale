@@ -35,7 +35,6 @@ export function DialogOverlay({
     closeText = '[Z] or [ESC] to CLOSE',
     cardId
 }: Props) {
-    // Get card color or default to white
     const textColor = cardId && CARD_COLORS[cardId] ? CARD_COLORS[cardId] : '#ffffff'
     const [displayedLines, setDisplayedLines] = useState<string[]>([])
     const [currentLineIndex, setCurrentLineIndex] = useState(0)
@@ -43,13 +42,10 @@ export function DialogOverlay({
     const [isComplete, setIsComplete] = useState(false)
     const dialogRef = useRef<HTMLDivElement>(null)
 
-    // Keyboard handling: ESC or Z to close, Z/X to skip typewriter
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
-            // Instant-complete typewriter on Z or X
             if ((e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'x') && !isComplete) {
                 e.preventDefault()
-                // Complete all remaining text instantly
                 setDisplayedLines(lines)
                 setCurrentLineIndex(lines.length)
                 setCharIndex(0)
@@ -57,7 +53,6 @@ export function DialogOverlay({
                 return
             }
             
-            // Close dialog when complete
             if ((e.key === 'Escape' || e.key.toLowerCase() === 'z') && isComplete) {
                 e.preventDefault()
                 playCardClose()
@@ -66,7 +61,6 @@ export function DialogOverlay({
         }
         window.addEventListener('keydown', handleKey)
         
-        // Focus the dialog for accessibility
         if (dialogRef.current) {
             dialogRef.current.focus()
         }
@@ -74,7 +68,6 @@ export function DialogOverlay({
         return () => window.removeEventListener('keydown', handleKey)
     }, [onClose, isComplete, lines])
 
-    // Typewriter effect: character by character, line by line
     useEffect(() => {
         if (currentLineIndex >= lines.length) {
             setIsComplete(true)
@@ -96,7 +89,6 @@ export function DialogOverlay({
             if (charIndex + 1 < lines[currentLineIndex].length) {
                 setCharIndex(c => c + 1)
             } else {
-                // Move to next line
                 setCurrentLineIndex(i => i + 1)
                 setCharIndex(0)
             }
@@ -105,7 +97,6 @@ export function DialogOverlay({
         return () => clearTimeout(timer)
     }, [charIndex, currentLineIndex, lines, typewriterSpeed])
 
-    // Reset when lines change
     useEffect(() => {
         setDisplayedLines([])
         setCurrentLineIndex(0)
@@ -113,18 +104,15 @@ export function DialogOverlay({
         setIsComplete(false)
     }, [lines])
 
-    // Helper to detect and render links, emails, and URLs
     const renderLine = (text: string): ReactNode => {
         if (!text) return ''
         
-        // Match URLs, emails, and GitHub/LinkedIn patterns
         const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|github\.com\/[^\s]+|linkedin\.com\/[^\s]+|instagram\.com\/[^\s]+|[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g
         const parts: string[] = []
         const matches: Array<{ text: string; index: number }> = []
         let lastIndex = 0
         let match
 
-        // Find all matches with their positions
         while ((match = urlRegex.exec(text)) !== null) {
             if (match.index > lastIndex) {
                 parts.push(text.substring(lastIndex, match.index))
@@ -142,7 +130,6 @@ export function DialogOverlay({
             return text
         }
 
-        // Render parts with links
         return parts.map((part, i) => {
             const isLink = matches.some(m => m.text === part && m.index === i)
             if (isLink) {
@@ -171,7 +158,6 @@ export function DialogOverlay({
         <div 
             className="dialog-overlay"
             onClick={(e) => {
-                // Close on overlay click (but not on dialog box click)
                 if (e.target === e.currentTarget) {
                     playCardClose()
                     onClose()
@@ -189,40 +175,32 @@ export function DialogOverlay({
                 </div>
                 <div className="dialog-content">
                     {displayedLines.map((line, i) => {
-                        // Determine color for each line based on content and card type
                         let lineColor = textColor
                         
                         if (cardId) {
                             if (cardId === 'skills') {
-                                // Skills: different colors for different sections - softer, more readable
                                 if (line.includes('Programming Languages:') || line.includes('Linguaggi di Programmazione:') || line.includes('Lenguajes de Programación:')) {
-                                    lineColor = '#6bcfd4' // Soft cyan for section headers
+                                    lineColor = '#6bcfd4'
                                 } else if (line.includes('Framework') || line.includes('Tecnologie:') || line.includes('Tecnologías:')) {
-                                    lineColor = '#ff9a9e' // Soft coral for frameworks
+                                    lineColor = '#ff9a9e'
                                 } else if (line.includes('Database:') || line.includes('Database') || line.includes('Base de Datos:')) {
-                                    lineColor = '#a8d8ea' // Sky blue for databases
+                                    lineColor = '#a8d8ea'
                                 } else if (line.includes('Other:') || line.includes('Altro:') || line.includes('Otros:')) {
-                                    lineColor = '#a8e6cf' // Mint for other
+                                    lineColor = '#a8e6cf'
                                 } else if (line.trim() && !line.includes(':')) {
-                                    // Content lines use the card color
                                     lineColor = textColor
                                 }
                             } else if (cardId === 'projects') {
-                                // Projects: alternate colors for each project - softer palette
                                 const projectIndicators = ['Ruby Pulse', 'Monster Hunter', 'Nintendo AI', 'Game Price', 'Japan Atlas']
                                 const isProjectStart = projectIndicators.some(indicator => line.includes(indicator))
                                 const projectIndex = projectIndicators.findIndex(indicator => line.includes(indicator))
                                 
                                 if (isProjectStart) {
-                                    // Each project gets a different color - softer, more readable
                                     const projectColors = ['#ffd93d', '#6bcfd4', '#ff9a9e', '#a8d8ea', '#a8e6cf']
                                     lineColor = projectColors[projectIndex] || textColor
                                 } else if (line.includes('Tech:') || line.includes('GitHub:')) {
-                                    // Tech and GitHub lines use a lighter variant
                                     lineColor = textColor
                                 } else if (line.trim() && !line.includes('–') && !line.includes('-')) {
-                                    // Project description lines - use same color as project start
-                                    // Find the nearest project start above this line
                                     let nearestProjectIndex = -1
                                     for (let j = i - 1; j >= 0; j--) {
                                         const checkIndex = projectIndicators.findIndex(indicator => displayedLines[j]?.includes(indicator))
@@ -237,16 +215,14 @@ export function DialogOverlay({
                                     }
                                 }
                             } else if (cardId === 'experience') {
-                                // Experience: different color for each company - softer tones
                                 const companies = ['Yumeverse Games', 'sgamapp']
                                 const isCompanyStart = companies.some(company => line.includes(company))
                                 const companyIndex = companies.findIndex(company => line.includes(company))
                                 
                                 if (isCompanyStart) {
-                                    const companyColors = ['#6bcfd4', '#ff9a9e'] // Soft cyan and coral
+                                    const companyColors = ['#6bcfd4', '#ff9a9e']
                                     lineColor = companyColors[companyIndex] || textColor
                                 } else if (line.includes('·') && line.includes('Developer')) {
-                                    // Role line - use company color
                                     let nearestCompanyIndex = -1
                                     for (let j = i - 1; j >= 0; j--) {
                                         const checkIndex = companies.findIndex(company => displayedLines[j]?.includes(company))
@@ -260,7 +236,6 @@ export function DialogOverlay({
                                         lineColor = companyColors[nearestCompanyIndex] || textColor
                                     }
                                 } else if (line.trim() && !line.includes('·')) {
-                                    // Description lines - use same color as company
                                     let nearestCompanyIndex = -1
                                     for (let j = i - 1; j >= 0; j--) {
                                         const checkIndex = companies.findIndex(company => displayedLines[j]?.includes(company))
@@ -275,13 +250,12 @@ export function DialogOverlay({
                                     }
                                 }
                             } else if (cardId === 'profile') {
-                                // Profile: name in golden yellow, title in soft cyan, description in card color
                                 if (line.includes('Biagio Scaglia')) {
-                                    lineColor = '#ffd93d' // Warm golden yellow for name
+                                    lineColor = '#ffd93d'
                                 } else if (line.includes('Developer') || line.includes('Product-Oriented')) {
-                                    lineColor = '#6bcfd4' // Soft cyan for title/subtitle
+                                    lineColor = '#6bcfd4'
                                 } else {
-                                    lineColor = textColor // Card color for description
+                                    lineColor = textColor
                                 }
                             }
                         }
